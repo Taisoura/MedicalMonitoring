@@ -1,0 +1,949 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Medical Monitoring Platform</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=JetBrains+Mono:wght@400;500&family=Noto+Sans+SC:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --navy:#0a1628;--navy-light:#132040;--navy-mid:#1a2d54;
+  --teal:#00b4d8;--teal-dim:#0096b7;--teal-glow:rgba(0,180,216,.12);
+  --amber:#f59e0b;--amber-dim:#d97706;
+  --red:#ef4444;--red-dim:#dc2626;--red-glow:rgba(239,68,68,.1);
+  --green:#22c55e;--green-dim:#16a34a;
+  --surface:#0f1d35;--surface-2:#162544;--surface-3:#1c2f56;
+  --border:rgba(255,255,255,.06);--border-hover:rgba(255,255,255,.12);
+  --text:#e2e8f0;--text-dim:#94a3b8;--text-muted:#64748b;
+  --font:'DM Sans','Noto Sans SC',system-ui,sans-serif;
+  --mono:'JetBrains Mono',monospace;
+  --radius:10px;--radius-lg:16px;
+}
+html{font-size:15px;scroll-behavior:smooth}
+body{
+  font-family:var(--font);color:var(--text);
+  background:var(--navy);min-height:100vh;
+  -webkit-font-smoothing:antialiased;
+}
+
+/* ── Layout ── */
+.app{display:flex;min-height:100vh}
+.sidebar{
+  width:280px;min-width:280px;background:var(--surface);
+  border-right:1px solid var(--border);
+  display:flex;flex-direction:column;position:fixed;
+  top:0;left:0;bottom:0;z-index:100;
+  transition:transform .3s cubic-bezier(.4,0,.2,1);
+}
+.sidebar.collapsed{transform:translateX(-280px)}
+.main{flex:1;margin-left:280px;display:flex;flex-direction:column;min-height:100vh}
+.topbar{
+  height:56px;background:var(--surface);
+  border-bottom:1px solid var(--border);
+  display:flex;align-items:center;padding:0 28px;gap:16px;
+  position:sticky;top:0;z-index:50;
+  backdrop-filter:blur(12px);
+}
+.content{flex:1;padding:28px;max-width:1400px;width:100%;margin:0 auto}
+
+/* ── Sidebar ── */
+.sidebar-brand{
+  padding:20px 24px;display:flex;align-items:center;gap:12px;
+  border-bottom:1px solid var(--border);
+}
+.sidebar-brand .logo{
+  width:36px;height:36px;border-radius:8px;
+  background:linear-gradient(135deg,var(--teal),#6366f1);
+  display:flex;align-items:center;justify-content:center;
+  font-weight:700;font-size:16px;color:#fff;
+}
+.sidebar-brand h1{font-size:14px;font-weight:600;letter-spacing:-.02em;line-height:1.3}
+.sidebar-brand span{font-size:11px;color:var(--text-muted);font-weight:400}
+.sidebar-nav{padding:12px;flex:1;overflow-y:auto}
+.nav-section{margin-bottom:6px}
+.nav-section-title{
+  font-size:10px;font-weight:600;text-transform:uppercase;
+  letter-spacing:.08em;color:var(--text-muted);padding:12px 12px 6px;
+}
+.nav-item{
+  display:flex;align-items:center;gap:10px;padding:9px 12px;
+  border-radius:8px;cursor:pointer;font-size:13.5px;font-weight:450;
+  color:var(--text-dim);transition:all .15s;
+  border:1px solid transparent;
+}
+.nav-item:hover{background:var(--surface-2);color:var(--text)}
+.nav-item.active{
+  background:var(--teal-glow);color:var(--teal);
+  border-color:rgba(0,180,216,.15);
+}
+.nav-item svg{width:18px;height:18px;flex-shrink:0;opacity:.7}
+.nav-item.active svg{opacity:1}
+.sidebar-footer{
+  padding:16px 20px;border-top:1px solid var(--border);
+  font-size:11px;color:var(--text-muted);
+}
+
+/* ── Topbar ── */
+.topbar-title{font-size:15px;font-weight:600;letter-spacing:-.01em}
+.topbar-breadcrumb{font-size:12px;color:var(--text-muted)}
+.topbar-right{margin-left:auto;display:flex;align-items:center;gap:12px}
+.topbar-badge{
+  font-size:11px;padding:3px 10px;border-radius:20px;font-weight:500;
+  background:var(--teal-glow);color:var(--teal);border:1px solid rgba(0,180,216,.2);
+}
+
+/* ── Cards ── */
+.card{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--radius-lg);padding:24px;
+  transition:border-color .2s;
+}
+.card:hover{border-color:var(--border-hover)}
+.card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.card-title{font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:var(--text-dim)}
+
+/* ── KPI Cards ── */
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;margin-bottom:28px}
+.kpi{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--radius);padding:20px;position:relative;overflow:hidden;
+}
+.kpi::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:3px;
+  background:var(--kpi-color,var(--teal));
+}
+.kpi-label{font-size:11.5px;font-weight:500;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px}
+.kpi-value{font-size:28px;font-weight:700;letter-spacing:-.03em;font-variant-numeric:tabular-nums}
+.kpi-sub{font-size:11px;color:var(--text-muted);margin-top:4px}
+.kpi.urgent{--kpi-color:var(--red)}
+.kpi.high{--kpi-color:var(--amber)}
+.kpi.medium{--kpi-color:#a78bfa}
+.kpi.success{--kpi-color:var(--green)}
+
+/* ── Upload Zone ── */
+.upload-zone{
+  border:2px dashed var(--border);border-radius:var(--radius-lg);
+  padding:48px 32px;text-align:center;cursor:pointer;
+  transition:all .25s;position:relative;
+}
+.upload-zone:hover,.upload-zone.dragover{
+  border-color:var(--teal);background:var(--teal-glow);
+}
+.upload-zone svg{width:48px;height:48px;color:var(--teal);margin-bottom:16px;opacity:.6}
+.upload-zone h3{font-size:16px;font-weight:600;margin-bottom:6px}
+.upload-zone p{font-size:13px;color:var(--text-muted)}
+.upload-zone input{position:absolute;inset:0;opacity:0;cursor:pointer}
+
+.file-badge{
+  display:inline-flex;align-items:center;gap:8px;
+  padding:8px 16px;border-radius:8px;
+  background:var(--surface-2);border:1px solid var(--border);
+  font-size:13px;margin-top:12px;
+}
+.file-badge .remove{
+  cursor:pointer;color:var(--text-muted);font-size:16px;
+  transition:color .15s;
+}
+.file-badge .remove:hover{color:var(--red)}
+
+/* ── Form Controls ── */
+.form-group{margin-bottom:18px}
+.form-label{display:block;font-size:12px;font-weight:500;color:var(--text-dim);margin-bottom:6px}
+.form-select,.form-input{
+  width:100%;padding:9px 12px;border-radius:8px;font-size:13px;
+  background:var(--navy);border:1px solid var(--border);
+  color:var(--text);font-family:var(--font);outline:none;
+  transition:border-color .15s;
+}
+.form-select:focus,.form-input:focus{border-color:var(--teal)}
+.form-textarea{
+  width:100%;padding:9px 12px;border-radius:8px;font-size:13px;
+  background:var(--navy);border:1px solid var(--border);
+  color:var(--text);font-family:var(--font);outline:none;
+  resize:vertical;min-height:60px;transition:border-color .15s;
+}
+.form-textarea:focus{border-color:var(--teal)}
+.form-checkbox{
+  display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;
+}
+.form-checkbox input[type=checkbox]{
+  width:16px;height:16px;accent-color:var(--teal);cursor:pointer;
+}
+.form-hint{font-size:11px;color:var(--text-muted);margin-top:3px}
+.toggle-section{
+  cursor:pointer;display:flex;align-items:center;gap:8px;
+  font-size:13px;font-weight:500;color:var(--text-dim);
+  padding:8px 0;
+}
+.toggle-section .chevron{transition:transform .2s;font-size:10px}
+.toggle-section.open .chevron{transform:rotate(90deg)}
+.toggle-body{display:none;padding:8px 0 0 0}
+.toggle-body.open{display:block}
+
+/* ── Buttons ── */
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  padding:10px 20px;border-radius:8px;font-size:13px;font-weight:550;
+  font-family:var(--font);cursor:pointer;border:1px solid transparent;
+  transition:all .15s;
+}
+.btn-primary{
+  background:linear-gradient(135deg,var(--teal),#0096b7);
+  color:#fff;border-color:transparent;
+}
+.btn-primary:hover{filter:brightness(1.1);transform:translateY(-1px)}
+.btn-primary:disabled{opacity:.5;pointer-events:none}
+.btn-outline{
+  background:transparent;border-color:var(--border);color:var(--text-dim);
+}
+.btn-outline:hover{border-color:var(--teal);color:var(--teal)}
+.btn-danger{background:var(--red-glow);border-color:rgba(239,68,68,.2);color:var(--red)}
+.btn-danger:hover{background:rgba(239,68,68,.18)}
+.btn-sm{padding:6px 14px;font-size:12px}
+.btn-icon{width:36px;height:36px;padding:0;border-radius:8px}
+
+/* ── Progress ── */
+.progress-container{margin:24px 0}
+.progress-bar-bg{
+  height:6px;border-radius:3px;background:var(--navy);overflow:hidden;
+}
+.progress-bar-fill{
+  height:100%;border-radius:3px;
+  background:linear-gradient(90deg,var(--teal),#6366f1);
+  transition:width .5s cubic-bezier(.4,0,.2,1);
+}
+.progress-label{
+  display:flex;justify-content:space-between;margin-top:8px;
+  font-size:12px;color:var(--text-muted);
+}
+
+/* ── Table ── */
+.data-table{width:100%;border-collapse:collapse;font-size:13px}
+.data-table thead{position:sticky;top:0}
+.data-table th{
+  text-align:left;padding:10px 14px;font-weight:600;font-size:11.5px;
+  text-transform:uppercase;letter-spacing:.04em;color:var(--text-muted);
+  background:var(--surface-2);border-bottom:1px solid var(--border);
+}
+.data-table td{
+  padding:10px 14px;border-bottom:1px solid var(--border);
+  color:var(--text-dim);
+}
+.data-table tbody tr:hover{background:var(--surface-2)}
+.severity-badge{
+  display:inline-block;padding:2px 10px;border-radius:12px;font-size:11px;font-weight:600;
+}
+.severity-badge.critical,.severity-badge.urgent{background:var(--red-glow);color:var(--red)}
+.severity-badge.high{background:rgba(245,158,11,.12);color:var(--amber)}
+.severity-badge.medium{background:rgba(167,139,250,.12);color:#a78bfa}
+.severity-badge.low,.severity-badge.info{background:rgba(0,180,216,.1);color:var(--teal)}
+
+/* ── Tabs ── */
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--border);margin-bottom:24px}
+.tab{
+  padding:10px 18px;font-size:13px;font-weight:500;color:var(--text-muted);
+  cursor:pointer;border-bottom:2px solid transparent;
+  transition:all .15s;
+}
+.tab:hover{color:var(--text)}
+.tab.active{color:var(--teal);border-bottom-color:var(--teal)}
+.tab-panel{display:none}
+.tab-panel.active{display:block}
+
+/* ── Export Bar ── */
+.export-bar{
+  display:flex;gap:10px;flex-wrap:wrap;padding:20px 0;
+  border-top:1px solid var(--border);margin-top:24px;
+}
+
+/* ── Grid layouts ── */
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:20px}
+
+/* ── Page views ── */
+.page{display:none}
+.page.active{display:block}
+
+/* ── Status indicator ── */
+.status-dot{
+  width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:6px;
+}
+.status-dot.running{background:var(--teal);animation:pulse 1.5s infinite}
+.status-dot.completed{background:var(--green)}
+.status-dot.failed{background:var(--red)}
+.status-dot.pending{background:var(--text-muted)}
+
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+
+/* ── Empty State ── */
+.empty-state{text-align:center;padding:60px 20px;color:var(--text-muted)}
+.empty-state svg{width:64px;height:64px;margin-bottom:16px;opacity:.3}
+.empty-state h3{font-size:16px;color:var(--text-dim);margin-bottom:8px}
+.empty-state p{font-size:13px;max-width:400px;margin:0 auto}
+
+/* ── Chart container ── */
+.chart-container{
+  width:100%;min-height:200px;display:flex;align-items:center;justify-content:center;
+  position:relative;
+}
+.chart-bar{display:flex;align-items:flex-end;gap:6px;height:160px;padding:0 8px}
+.chart-bar .bar{
+  flex:1;min-width:28px;border-radius:4px 4px 0 0;
+  position:relative;transition:height .6s cubic-bezier(.4,0,.2,1);
+}
+.chart-bar .bar-label{
+  position:absolute;bottom:-22px;left:50%;transform:translateX(-50%);
+  font-size:10px;color:var(--text-muted);white-space:nowrap;
+}
+.chart-bar .bar-value{
+  position:absolute;top:-20px;left:50%;transform:translateX(-50%);
+  font-size:11px;font-weight:600;color:var(--text);
+}
+
+/* ── Job history table ── */
+.job-row{
+  display:flex;align-items:center;gap:16px;padding:12px 16px;
+  border-bottom:1px solid var(--border);cursor:pointer;
+  transition:background .15s;
+}
+.job-row:hover{background:var(--surface-2)}
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:var(--border-hover)}
+
+/* ── Responsive ── */
+@media(max-width:1024px){
+  .sidebar{transform:translateX(-280px)}
+  .sidebar.open{transform:translateX(0)}
+  .main{margin-left:0}
+  .kpi-grid{grid-template-columns:repeat(auto-fit,minmax(140px,1fr))}
+  .grid-2,.grid-3{grid-template-columns:1fr}
+}
+
+/* ── Animations ── */
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.animate-in{animation:fadeIn .4s ease-out both}
+.delay-1{animation-delay:.1s}
+.delay-2{animation-delay:.2s}
+.delay-3{animation-delay:.3s}
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- ═══ Sidebar ═══ -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-brand">
+      <div class="logo">M</div>
+      <div><h1>Medical Monitoring</h1><span>Clinical Trial Platform</span></div>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-section">
+        <div class="nav-section-title">Pipeline</div>
+        <div class="nav-item active" data-page="upload" onclick="showPage('upload')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          Upload & Run
+        </div>
+        <div class="nav-item" data-page="jobs" onclick="showPage('jobs')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+          Job History
+        </div>
+      </div>
+      <div class="nav-section">
+        <div class="nav-section-title">Results</div>
+        <div class="nav-item" data-page="dashboard" onclick="showPage('dashboard')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg>
+          Dashboard
+        </div>
+        <div class="nav-item" data-page="findings" onclick="showPage('findings')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+          Findings
+        </div>
+        <div class="nav-item" data-page="exports" onclick="showPage('exports')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Export
+        </div>
+      </div>
+    </nav>
+    <div class="sidebar-footer">
+      Medical Monitoring v1.2.0<br>
+      <span id="apiStatus" style="color:var(--text-muted)">Checking API...</span>
+    </div>
+  </aside>
+
+  <!-- ═══ Main ═══ -->
+  <div class="main">
+    <header class="topbar">
+      <button class="btn btn-icon btn-outline" onclick="toggleSidebar()" style="display:none" id="menuBtn">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+      <span class="topbar-title" id="pageTitle">Upload & Run Pipeline</span>
+      <span class="topbar-breadcrumb" id="pageBreadcrumb"></span>
+      <div class="topbar-right">
+        <span class="topbar-badge" id="topbarJobBadge" style="display:none"></span>
+      </div>
+    </header>
+
+    <div class="content">
+
+      <!-- ═══ Page: Upload & Run ═══ -->
+      <div class="page active" id="page-upload">
+        <div class="grid-2" style="gap:28px">
+          <!-- Left: Upload -->
+          <div>
+            <div class="card animate-in">
+              <div class="card-header"><span class="card-title">EDC Data File</span></div>
+              <div class="upload-zone" id="edcDropZone">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                <h3>Drag & Drop EDC Excel</h3>
+                <p>or click to browse (.xlsx)</p>
+                <input type="file" accept=".xlsx,.xls" id="edcFileInput">
+              </div>
+              <div id="edcFileBadge"></div>
+            </div>
+
+            <div class="card animate-in delay-1" style="margin-top:16px">
+              <div class="card-header"><span class="card-title">CTCAE Reference (Optional)</span></div>
+              <div class="upload-zone" id="ctcaeDropZone" style="padding:24px 20px">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="width:32px;height:32px"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                <p style="margin-top:8px">Upload CTCAE v5.0 Excel</p>
+                <input type="file" accept=".xlsx,.xls" id="ctcaeFileInput">
+              </div>
+              <div id="ctcaeFileBadge"></div>
+            </div>
+          </div>
+
+          <!-- Right: Config -->
+          <div>
+            <div class="card animate-in delay-1">
+              <div class="card-header"><span class="card-title">Pipeline Configuration</span></div>
+
+              <div class="form-group">
+                <label class="form-label">Indication</label>
+                <select class="form-select" id="cfgIndication">
+                  <option value="general">General (Non-Oncology)</option>
+                  <option value="oncology">Oncology</option>
+                  <option value="stroke">Stroke</option>
+                  <option value="cardiovascular">Cardiovascular</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label class="form-checkbox">
+                  <input type="checkbox" id="cfgAI">
+                  Enable AI/LLM Enhancement (Qwen + GPT)
+                </label>
+                <div class="form-hint">Enables semantic term normalization, causality reasoning, and data cleaning</div>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">Visualization Theme</label>
+                <select class="form-select" id="cfgTheme">
+                  <option value="academic_conference">Academic Conference (ASCO/ESMO)</option>
+                  <option value="fda_regulatory">FDA Regulatory</option>
+                  <option value="pharma_dashboard">Pharma Dashboard</option>
+                </select>
+              </div>
+
+              <div style="margin-top:20px">
+                <div class="toggle-section" onclick="toggleDrugContext()">
+                  <span class="chevron">&#9654;</span>
+                  Drug / IB Context (Optional)
+                </div>
+                <div class="toggle-body" id="drugContextBody">
+                  <div class="form-group">
+                    <label class="form-label">Drug Name</label>
+                    <input class="form-input" id="cfgDrugName" placeholder="e.g. ZN-F-6418">
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Drug Class</label>
+                    <input class="form-input" id="cfgDrugClass" placeholder="e.g. KRAS G12D inhibitor">
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Mechanism of Action</label>
+                    <input class="form-input" id="cfgDrugMech" placeholder="e.g. Selective small-molecule inhibitor">
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Protocol Phase</label>
+                    <input class="form-input" id="cfgPhase" placeholder="e.g. Phase I">
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Known Risks (one per line)</label>
+                    <textarea class="form-textarea" id="cfgRisks" placeholder="Hepatotoxicity&#10;QT prolongation&#10;GI toxicity"></textarea>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <button class="btn btn-primary" style="width:100%;margin-top:16px;padding:14px" id="runBtn" onclick="runPipeline()" disabled>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+              Run Pipeline
+            </button>
+
+            <!-- Progress (hidden until running) -->
+            <div id="progressSection" style="display:none" class="card" style="margin-top:16px">
+              <div class="card-header"><span class="card-title">Pipeline Progress</span></div>
+              <div class="progress-container">
+                <div class="progress-bar-bg">
+                  <div class="progress-bar-fill" id="progressBar" style="width:0%"></div>
+                </div>
+                <div class="progress-label">
+                  <span id="progressMsg">Initializing...</span>
+                  <span id="progressPct">0%</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ Page: Job History ═══ -->
+      <div class="page" id="page-jobs">
+        <div class="card animate-in">
+          <div class="card-header">
+            <span class="card-title">Pipeline Jobs</span>
+            <button class="btn btn-outline btn-sm" onclick="loadJobs()">Refresh</button>
+          </div>
+          <div id="jobsList">
+            <div class="empty-state">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+              <h3>No Jobs Yet</h3>
+              <p>Upload an EDC file and run the pipeline to see jobs here.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ Page: Dashboard ═══ -->
+      <div class="page" id="page-dashboard">
+        <div id="dashboardContent">
+          <div class="empty-state">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg>
+            <h3>No Results Loaded</h3>
+            <p>Run a pipeline or select a completed job to view the dashboard.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ Page: Findings ═══ -->
+      <div class="page" id="page-findings">
+        <div id="findingsContent">
+          <div class="empty-state">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            <h3>No Findings</h3>
+            <p>Complete a pipeline run to see findings here.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ Page: Exports ═══ -->
+      <div class="page" id="page-exports">
+        <div id="exportsContent">
+          <div class="empty-state">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            <h3>No Exports Available</h3>
+            <p>Complete a pipeline run to download reports.</p>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+const API = window.location.origin;
+let currentJobId = null;
+let currentResults = null;
+let pollTimer = null;
+let edcFile = null;
+let ctcaeFile = null;
+
+// ── Navigation ──
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  const page = document.getElementById('page-' + name);
+  if (page) page.classList.add('active');
+  const nav = document.querySelector(`.nav-item[data-page="${name}"]`);
+  if (nav) nav.classList.add('active');
+  const titles = {
+    upload: 'Upload & Run Pipeline',
+    jobs: 'Job History',
+    dashboard: 'Results Dashboard',
+    findings: 'Findings Explorer',
+    exports: 'Export Reports',
+  };
+  document.getElementById('pageTitle').textContent = titles[name] || name;
+  if (name === 'jobs') loadJobs();
+}
+
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('open');
+}
+
+function toggleDrugContext() {
+  const sec = document.querySelector('.toggle-section');
+  const body = document.getElementById('drugContextBody');
+  sec.classList.toggle('open');
+  body.classList.toggle('open');
+}
+
+// ── File Upload ──
+function setupDropZone(zoneId, inputId, type) {
+  const zone = document.getElementById(zoneId);
+  const input = document.getElementById(inputId);
+
+  zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('dragover'); });
+  zone.addEventListener('dragleave', () => zone.classList.remove('dragover'));
+  zone.addEventListener('drop', e => {
+    e.preventDefault(); zone.classList.remove('dragover');
+    const f = e.dataTransfer.files[0];
+    if (f) handleFile(f, type);
+  });
+  input.addEventListener('change', e => {
+    if (e.target.files[0]) handleFile(e.target.files[0], type);
+  });
+}
+
+function handleFile(file, type) {
+  if (type === 'edc') {
+    edcFile = file;
+    showFileBadge('edcFileBadge', file, 'edc');
+    document.getElementById('runBtn').disabled = false;
+  } else {
+    ctcaeFile = file;
+    showFileBadge('ctcaeFileBadge', file, 'ctcae');
+  }
+}
+
+function showFileBadge(containerId, file, type) {
+  const size = (file.size / 1024).toFixed(0);
+  document.getElementById(containerId).innerHTML = `
+    <div class="file-badge">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+      <span>${file.name}</span>
+      <span style="color:var(--text-muted)">(${size} KB)</span>
+      <span class="remove" onclick="removeFile('${type}')">&times;</span>
+    </div>`;
+}
+
+function removeFile(type) {
+  if (type === 'edc') {
+    edcFile = null;
+    document.getElementById('edcFileBadge').innerHTML = '';
+    document.getElementById('edcFileInput').value = '';
+    document.getElementById('runBtn').disabled = true;
+  } else {
+    ctcaeFile = null;
+    document.getElementById('ctcaeFileBadge').innerHTML = '';
+    document.getElementById('ctcaeFileInput').value = '';
+  }
+}
+
+setupDropZone('edcDropZone', 'edcFileInput', 'edc');
+setupDropZone('ctcaeDropZone', 'ctcaeFileInput', 'ctcae');
+
+// ── Run Pipeline ──
+async function runPipeline() {
+  if (!edcFile) return;
+  const btn = document.getElementById('runBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="status-dot running"></span> Uploading...';
+
+  try {
+    const form = new FormData();
+    form.append('file', edcFile);
+    const upRes = await fetch(API + '/api/upload', { method: 'POST', body: form });
+    if (!upRes.ok) throw new Error('Upload failed: ' + (await upRes.text()));
+    const upData = await upRes.json();
+    currentJobId = upData.job_id;
+    document.getElementById('topbarJobBadge').style.display = '';
+    document.getElementById('topbarJobBadge').textContent = 'Job: ' + currentJobId;
+
+    const config = {
+      config: {
+        indication: document.getElementById('cfgIndication').value,
+        ai_enabled: document.getElementById('cfgAI').checked,
+        viz_theme: document.getElementById('cfgTheme').value,
+        drug_context: {
+          drug_name: document.getElementById('cfgDrugName').value,
+          drug_class: document.getElementById('cfgDrugClass').value,
+          drug_mechanism: document.getElementById('cfgDrugMech').value,
+          protocol_phase: document.getElementById('cfgPhase').value,
+          ib_risks: document.getElementById('cfgRisks').value.split('\n').filter(r => r.trim()),
+        },
+      },
+    };
+
+    btn.innerHTML = '<span class="status-dot running"></span> Starting pipeline...';
+    const runRes = await fetch(API + '/api/run/' + currentJobId, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(config),
+    });
+    if (!runRes.ok) throw new Error('Run failed: ' + (await runRes.text()));
+
+    document.getElementById('progressSection').style.display = '';
+    btn.innerHTML = '<span class="status-dot running"></span> Running...';
+    startPolling(currentJobId);
+  } catch (e) {
+    btn.disabled = false;
+    btn.innerHTML = 'Run Pipeline';
+    alert('Error: ' + e.message);
+  }
+}
+
+function startPolling(jobId) {
+  if (pollTimer) clearInterval(pollTimer);
+  pollTimer = setInterval(async () => {
+    try {
+      const res = await fetch(API + '/api/status/' + jobId);
+      const data = await res.json();
+      updateProgress(data);
+      if (data.status === 'completed' || data.status === 'failed') {
+        clearInterval(pollTimer);
+        pollTimer = null;
+        onPipelineComplete(data);
+      }
+    } catch (e) { /* ignore transient errors */ }
+  }, 1500);
+}
+
+function updateProgress(data) {
+  const pct = Math.round((data.progress || 0) * 100);
+  document.getElementById('progressBar').style.width = pct + '%';
+  document.getElementById('progressPct').textContent = pct + '%';
+  document.getElementById('progressMsg').textContent = data.message || 'Processing...';
+}
+
+async function onPipelineComplete(data) {
+  const btn = document.getElementById('runBtn');
+  if (data.status === 'completed') {
+    btn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg> Completed!';
+    btn.style.background = 'var(--green)';
+    try {
+      const res = await fetch(API + '/api/results/' + data.job_id);
+      currentResults = await res.json();
+      renderDashboard(currentResults);
+      renderFindings(currentResults);
+      renderExports(data.job_id, currentResults.available_exports || []);
+      setTimeout(() => showPage('dashboard'), 600);
+    } catch (e) { console.error('Failed to load results', e); }
+  } else {
+    btn.innerHTML = 'Pipeline Failed';
+    btn.style.background = 'var(--red)';
+    document.getElementById('progressMsg').textContent = data.error || data.message || 'Unknown error';
+  }
+  setTimeout(() => {
+    btn.disabled = false;
+    btn.style.background = '';
+    btn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg> Run Pipeline';
+  }, 4000);
+}
+
+// ── Dashboard Rendering ──
+function renderDashboard(data) {
+  const c = document.getElementById('dashboardContent');
+  const es = data.executive_summary || {};
+  const modules = data.modules_run || [];
+  const isOnc = data.is_oncology;
+
+  c.innerHTML = `
+    <div class="kpi-grid animate-in">
+      <div class="kpi"><div class="kpi-label">Total Findings</div><div class="kpi-value">${data.total_findings||0}</div></div>
+      <div class="kpi urgent"><div class="kpi-label">Urgent (P1)</div><div class="kpi-value">${data.urgent_count||0}</div></div>
+      <div class="kpi high"><div class="kpi-label">High (P2)</div><div class="kpi-value">${data.high_count||0}</div></div>
+      <div class="kpi medium"><div class="kpi-label">Medium (P3)</div><div class="kpi-value">${data.medium_count||0}</div></div>
+      <div class="kpi success"><div class="kpi-label">Subjects</div><div class="kpi-value">${data.n_subjects||0}</div></div>
+      <div class="kpi"><div class="kpi-label">Actions</div><div class="kpi-value">${data.total_actions||0}</div></div>
+    </div>
+
+    ${es.key_message ? `<div class="card animate-in delay-1" style="border-left:3px solid ${data.urgent_count > 0 ? 'var(--red)' : 'var(--amber)'}; margin-bottom:20px">
+      <p style="font-size:14px;font-weight:500">${es.key_message}</p>
+    </div>` : ''}
+
+    <div class="grid-2 animate-in delay-2">
+      <div class="card">
+        <div class="card-header"><span class="card-title">Severity Distribution</span></div>
+        <div class="chart-container">
+          ${renderSeverityChart(data)}
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><span class="card-title">Modules Run</span></div>
+        <div style="display:flex;flex-wrap:wrap;gap:8px;padding:8px 0">
+          ${modules.map(m => `<span style="padding:5px 14px;border-radius:6px;background:var(--surface-2);font-size:12px;font-weight:500;border:1px solid var(--border)">${m}</span>`).join('')}
+          ${isOnc ? '<span style="padding:5px 14px;border-radius:6px;background:var(--teal-glow);color:var(--teal);font-size:12px;font-weight:500;border:1px solid rgba(0,180,216,.15)">Oncology</span>' : ''}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function renderSeverityChart(data) {
+  const vals = [
+    { label: 'Urgent', value: data.urgent_count || 0, color: 'var(--red)' },
+    { label: 'High', value: data.high_count || 0, color: 'var(--amber)' },
+    { label: 'Medium', value: data.medium_count || 0, color: '#a78bfa' },
+  ];
+  const maxVal = Math.max(...vals.map(v => v.value), 1);
+  return `<div class="chart-bar" style="width:100%;padding-bottom:30px">
+    ${vals.map(v => `<div class="bar" style="height:${Math.max(4, v.value/maxVal*140)}px;background:${v.color}">
+      <span class="bar-value">${v.value}</span>
+      <span class="bar-label">${v.label}</span>
+    </div>`).join('')}
+  </div>`;
+}
+
+// ── Findings ──
+function renderFindings(data) {
+  const c = document.getElementById('findingsContent');
+  const findings = data.executive_summary?.top_finding_categories || [];
+
+  if (!findings.length && !data.total_findings) {
+    c.innerHTML = `<div class="card animate-in">
+      <div class="card-header"><span class="card-title">Findings Summary</span></div>
+      <p style="color:var(--text-muted);padding:20px 0">Total: ${data.total_findings || 0} findings found across ${data.modules_run?.length || 0} modules.</p>
+      <p style="color:var(--text-dim);font-size:13px">Detailed findings are available in the exported reports (PDF, Word, JSON).</p>
+    </div>`;
+    return;
+  }
+
+  let tableHtml = '';
+  if (findings.length) {
+    tableHtml = `<table class="data-table">
+      <thead><tr><th>Category</th><th>Count</th><th>Proportion</th></tr></thead>
+      <tbody>${findings.map(f => {
+        const cat = Array.isArray(f) ? f[0] : f.category || f[0];
+        const cnt = Array.isArray(f) ? f[1] : f.count || f[1];
+        const pct = data.total_findings ? (cnt / data.total_findings * 100).toFixed(1) : '0';
+        return `<tr><td style="font-weight:500">${cat}</td><td>${cnt}</td><td><div style="display:flex;align-items:center;gap:8px"><div style="width:80px;height:6px;border-radius:3px;background:var(--navy)"><div style="width:${pct}%;height:100%;border-radius:3px;background:var(--teal)"></div></div>${pct}%</td></tr>`;
+      }).join('')}</tbody>
+    </table>`;
+  }
+
+  c.innerHTML = `
+    <div class="kpi-grid animate-in" style="margin-bottom:20px">
+      <div class="kpi"><div class="kpi-label">Total Findings</div><div class="kpi-value">${data.total_findings||0}</div></div>
+      <div class="kpi urgent"><div class="kpi-label">Urgent</div><div class="kpi-value">${data.urgent_count||0}</div></div>
+      <div class="kpi high"><div class="kpi-label">High</div><div class="kpi-value">${data.high_count||0}</div></div>
+    </div>
+    <div class="card animate-in delay-1">
+      <div class="card-header"><span class="card-title">Finding Categories</span></div>
+      ${tableHtml || '<p style="color:var(--text-muted);padding:12px 0">Detailed breakdown available in export.</p>'}
+    </div>
+  `;
+}
+
+// ── Exports ──
+function renderExports(jobId, exports) {
+  const c = document.getElementById('exportsContent');
+  const formats = [
+    { key: 'xlsx', label: 'Excel Report', icon: '📊', desc: 'Multi-sheet structured workbook', ext: '.xlsx' },
+    { key: 'pdf', label: 'PDF Report', icon: '📄', desc: 'Formal regulatory-grade document', ext: '.pdf' },
+    { key: 'docx', label: 'Word Document', icon: '📝', desc: 'CRO/Sponsor-ready template', ext: '.docx' },
+    { key: 'json', label: 'JSON Data', icon: '{ }', desc: 'Structured machine-readable export', ext: '.json' },
+  ];
+
+  c.innerHTML = `
+    <div class="card animate-in">
+      <div class="card-header"><span class="card-title">Download Reports</span></div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:16px;padding:8px 0">
+        ${formats.map(f => {
+          const avail = exports.some(e => e.endsWith(f.ext));
+          return `<div style="padding:20px;border:1px solid var(--border);border-radius:var(--radius);${avail ? '' : 'opacity:0.4'}">
+            <div style="font-size:28px;margin-bottom:10px">${f.icon}</div>
+            <div style="font-size:14px;font-weight:600;margin-bottom:4px">${f.label}</div>
+            <div style="font-size:12px;color:var(--text-muted);margin-bottom:14px">${f.desc}</div>
+            ${avail
+              ? `<a href="${API}/api/export/${jobId}/${f.key}" class="btn btn-primary btn-sm" download>Download ${f.ext}</a>`
+              : `<span style="font-size:12px;color:var(--text-muted)">Not available</span>`}
+          </div>`;
+        }).join('')}
+      </div>
+    </div>
+  `;
+}
+
+// ── Job History ──
+async function loadJobs() {
+  try {
+    const res = await fetch(API + '/api/jobs');
+    const jobs = await res.json();
+    const c = document.getElementById('jobsList');
+
+    if (!jobs.length) {
+      c.innerHTML = '<div class="empty-state"><h3>No Jobs Yet</h3><p>Upload an EDC file and run the pipeline.</p></div>';
+      return;
+    }
+
+    c.innerHTML = `<table class="data-table">
+      <thead><tr><th>Job ID</th><th>File</th><th>Status</th><th>Created</th><th>Actions</th></tr></thead>
+      <tbody>${jobs.map(j => `<tr>
+        <td style="font-family:var(--mono);font-size:12px">${j.job_id}</td>
+        <td>${j.filename || '-'}</td>
+        <td><span class="status-dot ${j.status}"></span>${j.status}</td>
+        <td style="font-size:12px;color:var(--text-muted)">${j.created_at ? new Date(j.created_at).toLocaleString() : '-'}</td>
+        <td>
+          ${j.status === 'completed'
+            ? `<button class="btn btn-outline btn-sm" onclick="loadJobResults('${j.job_id}')">View</button>`
+            : j.status === 'running'
+            ? '<span style="font-size:12px;color:var(--teal)">Running...</span>'
+            : `<button class="btn btn-danger btn-sm" onclick="deleteJob('${j.job_id}')">Delete</button>`}
+        </td>
+      </tr>`).join('')}</tbody>
+    </table>`;
+  } catch (e) {
+    document.getElementById('jobsList').innerHTML = '<p style="color:var(--red);padding:20px">Failed to load jobs: ' + e.message + '</p>';
+  }
+}
+
+async function loadJobResults(jobId) {
+  try {
+    currentJobId = jobId;
+    const res = await fetch(API + '/api/results/' + jobId);
+    if (!res.ok) throw new Error(await res.text());
+    currentResults = await res.json();
+    renderDashboard(currentResults);
+    renderFindings(currentResults);
+    renderExports(jobId, currentResults.available_exports || []);
+    showPage('dashboard');
+    document.getElementById('topbarJobBadge').style.display = '';
+    document.getElementById('topbarJobBadge').textContent = 'Job: ' + jobId;
+  } catch (e) {
+    alert('Failed to load results: ' + e.message);
+  }
+}
+
+async function deleteJob(jobId) {
+  if (!confirm('Delete job ' + jobId + '?')) return;
+  try {
+    await fetch(API + '/api/jobs/' + jobId, { method: 'DELETE' });
+    loadJobs();
+  } catch (e) { alert('Delete failed: ' + e.message); }
+}
+
+// ── Health Check ──
+async function checkApi() {
+  try {
+    const res = await fetch(API + '/health');
+    const data = await res.json();
+    document.getElementById('apiStatus').innerHTML =
+      '<span style="color:var(--green)">&#9679;</span> API Connected';
+  } catch (e) {
+    document.getElementById('apiStatus').innerHTML =
+      '<span style="color:var(--red)">&#9679;</span> API Offline';
+  }
+}
+
+// ── Init ──
+checkApi();
+setInterval(checkApi, 30000);
+</script>
+</body>
+</html>

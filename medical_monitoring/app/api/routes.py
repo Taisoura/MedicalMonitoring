@@ -105,6 +105,30 @@ async def get_status(job_id: str):
     )
 
 
+@router.post("/upload-ctcae/{job_id}")
+async def upload_ctcae_file(job_id: str, file: UploadFile = File(...)):
+    """Upload a CTCAE reference Excel for an existing job."""
+    try:
+        _store.get_meta(job_id)
+    except FileNotFoundError:
+        raise HTTPException(404, f"Job {job_id} not found")
+
+    if not file.filename or not file.filename.endswith((".xlsx", ".xls")):
+        raise HTTPException(400, "Only .xlsx/.xls files are accepted")
+
+    content = await file.read()
+    upload_path = _store.get_upload_path(job_id) / f"ctcae_{file.filename}"
+    with open(upload_path, "wb") as f:
+        f.write(content)
+
+    meta = _store.get_meta(job_id)
+    cfg = meta.get("config", {})
+    cfg["ctcae_file"] = str(upload_path)
+    _store.save_config(job_id, cfg)
+
+    return {"status": "uploaded", "filename": file.filename, "path": str(upload_path)}
+
+
 @router.get("/results/{job_id}", response_model=ResultSummaryResponse)
 async def get_results(job_id: str):
     """Get pipeline results summary."""
@@ -138,6 +162,23 @@ async def get_results(job_id: str):
         executive_summary=summary,
         available_exports=exports,
     )
+
+
+@router.get("/results/{job_id}/full")
+async def get_full_results(job_id: str):
+    """Get the complete raw results JSON (for dashboard rendering)."""
+    try:
+        meta = _store.get_meta(job_id)
+    except FileNotFoundError:
+        raise HTTPException(404, f"Job {job_id} not found")
+
+    if meta["status"] != JobStatus.COMPLETED.value:
+        raise HTTPException(409, f"Job is {meta['status']}, results not yet available")
+
+    try:
+        return _store.get_results(job_id)
+    except FileNotFoundError:
+        raise HTTPException(404, "Results file not found")
 
 
 @router.get("/export/{job_id}/{format}")

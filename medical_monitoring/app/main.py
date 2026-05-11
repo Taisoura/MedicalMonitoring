@@ -2,22 +2,29 @@
 FastAPI application entry point for the Medical Monitoring web service.
 
 Provides REST API for uploading EDC files, running the pipeline,
-and downloading results in multiple formats.
+downloading results, and serves the frontend SPA.
 """
 
 from __future__ import annotations
 
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 
 from .api.routes import router as api_router
+
+STATIC_DIR = Path(__file__).parent / "static"
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     print("[MedMon API] Starting up...")
+    print(f"[MedMon API] Frontend: http://localhost:8000")
+    print(f"[MedMon API] API Docs: http://localhost:8000/docs")
     yield
     print("[MedMon API] Shutting down...")
 
@@ -44,23 +51,24 @@ app.add_middleware(
 app.include_router(api_router)
 
 
-@app.get("/")
-async def root():
+@app.get("/", include_in_schema=False)
+async def serve_frontend():
+    """Serve the frontend SPA."""
+    index = STATIC_DIR / "index.html"
+    if index.exists():
+        return FileResponse(str(index), media_type="text/html")
     return {
         "service": "Medical Monitoring API",
         "version": "1.2.0",
         "docs": "/docs",
-        "endpoints": {
-            "upload": "POST /api/upload",
-            "run": "POST /api/run/{job_id}",
-            "status": "GET /api/status/{job_id}",
-            "results": "GET /api/results/{job_id}",
-            "export": "GET /api/export/{job_id}/{format}",
-            "jobs": "GET /api/jobs",
-        },
+        "frontend": "Static files not found. Place index.html in app/static/",
     }
 
 
 @app.get("/health")
 async def health():
     return {"status": "healthy"}
+
+
+if STATIC_DIR.exists():
+    app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
