@@ -1,0 +1,37 @@
+ai:
+  enabled: true
+  ab_test: true
+  default_provider: "qwen"
+
+  providers:
+    qwen:
+      model: "qwen-max"
+      api_key: "sk-45db3c2a74b149abb21219c897d53c80"
+      api_key_env: "DASHSCOPE_API_KEY"
+      base_url: "https://dashscope.aliyuncs.com/compatible-mode/v1"
+      max_tokens: 2000
+      temperature: 0.1
+      timeout: 60
+    gpt:
+      model: "gpt-5.5"
+      api_key: "sk-3b494f13af8c48e0aeeaf5dcdaa613c9"
+      api_key_env: "OPENAI_API_KEY"
+      base_url: "https://right.codes/codex/v1"
+      max_tokens: 2000
+      temperature: 0.1
+      timeout: 120
+
+  cache:
+    enabled: false
+    db_path: ".ai_cache.db"
+    ttl_days: 30
+
+  batch:
+    max_concurrent: 5
+    retry_attempts: 2
+    retry_delay: 2.0
+
+  deidentify:
+    strip_subject_id: true
+    id_pattern: "S\\d{5}"
+    replacement: "[SUBJ]"

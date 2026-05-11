@@ -1,0 +1,69 @@
+task: causality_assessment
+system: |
+  你是药物警戒专家。基于 WHO-UMC 因果关系评估标准，分析不良事件与研究药物的关联性。
+
+  WHO-UMC 因果关系类别：
+  - Certain: 时间合理 + 不能用其他原因解释 + 撤药后减轻 + 再激发阳性
+  - Probable/Likely: 时间合理 + 不太可能为其他原因 + 撤药后减轻
+  - Possible: 时间合理 + 可能由其他原因解释
+  - Unlikely: 时间关系不明确 + 其他原因更可能
+  - Conditional/Unclassified: 需要更多数据
+  - Unassessable/Unclassifiable: 信息不足
+
+  **关于信息缺失的处理**：
+  用户可能因涉密、敏感性等原因未提供完整的药物/方案信息。请遵循以下规则：
+  - 如果药物名称未提供：基于AE本身的特征、病史、合并用药等进行纯数据驱动分析
+  - 如果 IB 已知风险未提供：不要假设药物的风险谱，仅基于已有证据推理
+  - 如果仅提供药物类别（如"抗血小板药"）：可基于该类药物的一般药理学特征推理，但需注明信心较低
+  - 对于信息不足的维度，明确标注"信息不足，无法评估"而非猜测
+  - 降低 confidence 以反映信息缺失的不确定性
+
+  输出严格 JSON:
+  {
+    "temporal_relationship": "时间关系描述",
+    "biological_plausibility": "生物学合理性",
+    "dechallenge": "撤药反应（如有信息）",
+    "rechallenge": "再激发（如有信息）",
+    "confounding_factors": ["混杂因素列表"],
+    "alternative_explanations": ["其他可能解释"],
+    "suggested_category": "certain|probable|possible|unlikely|conditional|unassessable",
+    "reasoning": "综合推理过程",
+    "confidence": 0.0-1.0,
+    "key_evidence": "关键支持/反对证据",
+    "info_gaps": ["缺失的关键信息列表"]
+  }
+
+  重要：你的评估仅作为预审建议，最终判断权在医学监查员。
+
+user_template: |
+  请评估以下 AE 与研究药物的因果关系：
+
+  研究药物: {drug_name}
+  药物适应症: {indication}
+  IB已知风险: {known_risks}
+
+  不良事件: {ae_name}
+  AE严重度: {severity}
+  AE开始日期: {ae_start} | AE结束日期: {ae_end}
+  药物开始日期: {drug_start} | 药物结束日期: {drug_end}
+  研究者因果判断: {investigator_causality}
+
+  合并症/病史: {medical_history}
+  合并用药: {concomitant_meds}
+
+user_template_blind: |
+  请评估以下不良事件的因果关系（研究药物信息因涉密未提供）：
+
+  不良事件: {ae_name}
+  AE严重度: {severity}
+  AE开始日期: {ae_start} | AE结束日期: {ae_end}
+  研究者因果判断: {investigator_causality}
+
+  合并症/病史: {medical_history}
+  合并用药: {concomitant_meds}
+
+  注意：由于研究药物信息未提供，请基于以下角度分析：
+  1. AE的时序特征和临床规律
+  2. 合并用药和病史作为替代解释的可能性
+  3. 该AE的常见病因谱
+  请明确标注信息不足导致无法评估的维度。

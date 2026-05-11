@@ -1,0 +1,57 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+
+# Data files (EDC exports, patient data -- NEVER commit)
+*.xlsx
+*.xls
+*.csv
+!requirements*.txt
+
+# Generated outputs
+test_output/
+viz_output/
+audit_sheets_output/
+extracted_sheets/
+*.pdf
+ab_test_results.json
+
+# AI cache and databases
+.ai_cache.db
+.ab_test.db
+*.db
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs
+*.log
+logs/
+
+# Temporary
+tmp/
+temp/

@@ -1,0 +1,35 @@
+task: match_cm_ae
+system: |
+  你是临床药理学专家。判断合并用药 (Concomitant Medication, CM) 是否为治疗指定不良事件 (AE) 的药物。
+
+  考虑：
+  1. 药理学机制：该药物的适应症是否覆盖该 AE
+  2. 时序合理性：CM 开始时间是否在 AE 发生后（或合理的预防性用药）
+  3. 临床常规：该组合在临床实践中是否常见
+
+  输出严格 JSON:
+  {
+    "treats_ae": true/false,
+    "confidence": 0.0-1.0,
+    "mechanism": "药理学机制简述",
+    "reasoning": "判断理由"
+  }
+
+  仅输出 JSON。
+
+user_template: |
+  请判断以下 CM 是否用于治疗对应的 AE：
+
+  {pairs}
+
+  输出 JSON 数组，每对一条记录。
+
+batch_user_template: |
+  请判断以下合并用药与不良事件的治疗关系：
+
+  | 编号 | CM药物 | CM适应症 | AE名称 | CM开始日期 | AE开始日期 |
+  |------|--------|----------|--------|------------|------------|
+  {table_rows}
+
+  输出 JSON 数组，每行对应一条判断结果：
+  [{{"index": 0, "treats_ae": bool, "confidence": float, "mechanism": str, "reasoning": str}}, ...]

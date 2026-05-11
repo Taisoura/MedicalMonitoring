@@ -1,0 +1,115 @@
+# EDC Form Mapping Configuration
+# Maps form codes to categories and descriptions for Medical Monitoring
+
+standard_header_columns:
+  - project_code
+  - form_code
+  - subject_id
+  - initials
+  - subject_status
+  - site_code
+  - site_name
+  - visit
+  - instance_order
+  - block
+  - block_order
+  - page
+  - last_modified
+  - row_number
+
+form_categories:
+  demographics:
+    - DM    # Demographics
+    - IC    # Informed Consent
+    - IE    # Inclusion/Exclusion
+    - DS1   # Randomization
+    - DS2   # Study Completion
+
+  visits:
+    - SV    # Visit Dates
+    - FA1   # Visit Status
+    - FA2   # Unplanned Visit Content
+
+  vitals_and_exam:
+    - VS1   # Height/Weight/BMI
+    - VS2   # Vital Signs
+    - PE    # Physical Examination
+
+  medical_history:
+    - MH1   # Stroke History (disease-specific)
+    - MH2   # Past Medical History
+    - MH3   # Early Stroke Progression (disease-specific)
+
+  laboratory:
+    - LB1   # Hematology (CBC)
+    - LB2   # Biochemistry
+    - LB3   # Coagulation
+    - LB4   # Creatinine Clearance
+    - LB5   # Pregnancy Test
+    - LB6   # Biochemistry (Screening)
+
+  ecg_imaging:
+    - EG    # ECG
+    - MO    # Head Imaging (Screening)
+    - MO1   # Head Imaging (Follow-up)
+
+  efficacy_scores:
+    - QS1   # NIHSS Score (disease-specific)
+    - QS2   # Pre-morbid mRS (disease-specific)
+    - QS3   # mRS Score (disease-specific)
+    - QS4   # ASPECTS Score (disease-specific)
+    - QS5   # TOAST Classification (disease-specific)
+    - QS6   # Medication Questionnaire
+
+  treatment:
+    - PR1   # Endovascular Treatment (disease-specific)
+    - PR2   # Non-drug Treatment
+    - DA    # Drug Dispensing
+    - EX    # Dosing Record
+
+  safety:
+    - AE    # Adverse Events
+    - CM    # Concomitant Medications
+    - DD    # Death Information
+    - CE1   # Combined Vascular Events
+    - CE2   # Symptomatic ICH
+    - CE3   # Bleeding Events
+
+  other:
+    - XT    # Unplanned Examinations
+
+# Key columns per form for cross-domain auditing
+key_columns:
+  AE:
+    name: "field_0"        # AE name
+    start_date: "field_1"  # AE onset date
+    severity: "field_2"    # Severity grade
+    causality: "field_3"   # Drug relatedness
+    outcome: "field_4"     # Outcome
+    sae: "field_5"         # SAE flag
+  CM:
+    drug_name: "field_0"
+    indication: "field_1"
+    start_date: "field_2"
+    end_date: "field_3"
+    dose: "field_4"
+    route: "field_5"
+  LB1:
+    test_name: "field_0"
+    test_code: "field_1"
+    result: "field_2"
+    unit: "field_3"
+    lower_limit: "field_4"
+    upper_limit: "field_5"
+    clinical_significance: "field_6"
+    dynamic_link: "field_7"
+  MH2:
+    has_history: "field_0"
+    disease_name: "field_1"
+    start_date: "field_2"
+    ongoing: "field_3"
+  DD:
+    death_occurred: "field_0"
+    death_date: "field_1"
+    vascular_death: "field_2"
+    cause_of_death: "field_3"

@@ -1,0 +1,142 @@
+# Cross-Domain Audit Rules Configuration
+# Each rule defines: trigger conditions, related tables, output format, severity
+
+rules:
+  cm_ae_temporal:
+    name: "CM↔AE Temporal Logic"
+    description: "CM start date should be AFTER the AE onset date (treatment follows event)"
+    category: "cross_domain"
+    severity: "high"
+    source_tables: ["CM", "AE"]
+    logic: "cm_start_date < ae_onset_date"
+    threshold_days: 7  # flag if CM starts >7 days before AE
+    regulatory_basis: "ICH E6(R2) - Data consistency"
+    output_columns:
+      - subject_id
+      - site_code
+      - drug_name
+      - cm_start_date
+      - ae_name
+      - ae_onset_date
+      - days_difference
+      - cm_row
+      - query_text
+
+  lb_ae_underreporting:
+    name: "LB↔AE Under-reporting"
+    description: "Lab results marked 'Clinically Significant Abnormal' must have corresponding AE"
+    category: "cross_domain"
+    severity: "high"
+    source_tables: ["LB1", "LB2", "LB3", "AE"]
+    logic: "clinical_significance == 'abnormal_cs' AND no_matching_ae"
+    clinical_significance_values:
+      - "异常有临床意义"
+      - "Abnormal - Clinically Significant"
+      - "CS"
+    regulatory_basis: "ICH E6(R2) Section 12.2 - Investigator obligation to report"
+    output_columns:
+      - subject_id
+      - site_code
+      - test_code
+      - test_name
+      - result
+      - reference_range
+      - visit
+      - test_date
+      - lb_row
+      - query_text
+
+  mh_cm_reasonability:
+    name: "MH↔CM Medication Reasonability"
+    description: "Active comorbidities should have corresponding treatment medications"
+    category: "cross_domain"
+    severity: "medium"
+    source_tables: ["MH2", "CM"]
+    logic: "active_comorbidity AND no_matching_medication_class"
+    matching_rules:
+      - condition: "房颤|Atrial Fibrillation|AF"
+        expected_drugs: "抗凝|anticoagulant|warfarin|rivaroxaban|apixaban|edoxaban|dabigatran|华法林|利伐沙班"
+        drug_class: "Anticoagulants"
+        clinical_risk: "Increased stroke recurrence risk without anticoagulation"
+      - condition: "高血压|Hypertension|HTN"
+        expected_drugs: "降压|antihypertensive|ARB|ACEI|CCB|利尿|氨氯地平|缬沙坦|厄贝沙坦"
+        drug_class: "Antihypertensives"
+        clinical_risk: "Uncontrolled hypertension increases hemorrhagic risk"
+      - condition: "糖尿病|Diabetes|DM"
+        expected_drugs: "降糖|hypoglycemic|insulin|metformin|胰岛素|二甲双胍|格列"
+        drug_class: "Antidiabetics"
+        clinical_risk: "Uncontrolled glucose affects wound healing and infection risk"
+      - condition: "高血脂|高脂血症|Hyperlipidemia|Dyslipidemia"
+        expected_drugs: "他汀|statin|atorvastatin|rosuvastatin|阿托伐|瑞舒伐"
+        drug_class: "Statins"
+        clinical_risk: "Lack of statin therapy in atherosclerotic disease"
+      - condition: "冠心病|Coronary|CAD|CHD"
+        expected_drugs: "抗血小板|antiplatelet|aspirin|clopidogrel|阿司匹林|氯吡格雷|抗凝"
+        drug_class: "Antiplatelets/Anticoagulants"
+        clinical_risk: "Coronary disease without antithrombotic therapy"
+    regulatory_basis: "Good Clinical Practice - Medical plausibility"
+    output_columns:
+      - subject_id
+      - site_code
+      - comorbidity_name
+      - mh_row
+      - missing_drug_class
+      - clinical_risk
+      - query_text
+
+  ae_dd_death_consistency:
+    name: "AE↔DD Death Consistency"
+    description: "AE outcome=death must have DD record, and vice versa"
+    category: "cross_domain"
+    severity: "urgent"
+    source_tables: ["AE", "DD"]
+    logic: "(ae_outcome == 'death' AND no_dd_record) OR (dd_death == 'yes' AND no_fatal_ae)"
+    regulatory_basis: "ICH E6(R2) - SAE/Death reporting requirements"
+    output_columns:
+      - subject_id
+      - direction  # AE→DD missing or DD→AE missing
+      - ae_name
+      - ae_outcome
+      - dd_death_date
+      - dd_cause
+      - query_text
+
+  imaging_ecg_ae_consistency:
+    name: "MO/EG↔AE Consistency"
+    description: "Clinically significant imaging/ECG abnormalities must have corresponding AE"
+    category: "cross_domain"
+    severity: "high"
+    source_tables: ["EG", "MO", "MO1", "AE"]
+    logic: "clinical_significance == 'abnormal_cs' AND no_matching_ae"
+    regulatory_basis: "ICH E6(R2) - All clinically significant findings must be reported"
+    output_columns:
+      - subject_id
+      - source_table
+      - finding_description
+      - visit
+      - date
+      - query_text
+
+  dynamic_link_accuracy:
+    name: "LB Dynamic Link Accuracy"
+    description: "EDC dynamic links from LB to AE must be medically logical"
+    category: "cross_domain"
+    severity: "medium"
+    source_tables: ["LB1", "AE"]
+    logic: "has_dynamic_link AND link_target_mismatch"
+    mismatch_types:
+      - type: "severe"
+        description: "Link target AE has no medical relationship to lab finding"
+      - type: "suspicious"
+        description: "Link target AE is plausible but not the best match"
+      - type: "date_unclear"
+        description: "Cannot verify temporal relationship due to missing dates"
+    regulatory_basis: "Data integrity - accurate cross-referencing"
+    output_columns:
+      - subject_id
+      - test_code
+      - test_name
+      - linked_ae
+      - expected_ae_type
+      - mismatch_type
+      - query_text
