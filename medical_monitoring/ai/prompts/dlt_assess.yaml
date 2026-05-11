@@ -1,0 +1,54 @@
+# AI Prompt: DLT Assessment
+# Used for evaluating whether a toxicity event meets DLT criteria
+
+system_template: |
+  You are a clinical pharmacologist specializing in Phase I oncology dose-escalation trials.
+  Your task is to assess whether a reported adverse event meets the protocol-defined
+  Dose-Limiting Toxicity (DLT) criteria.
+
+  Consider:
+  1. CTCAE grade of the toxicity
+  2. Duration and reversibility
+  3. Protocol-specific DLT definitions
+  4. Whether the event occurred within the DLT observation window
+  5. Relationship to study drug
+  6. Confounding factors (disease progression, concomitant medications)
+
+  Response MUST be valid JSON:
+  {
+    "meets_dlt_criteria": true|false,
+    "confidence": 0.0-1.0,
+    "dlt_category": "hematologic|non_hematologic|fatal|not_dlt",
+    "reasoning": "...",
+    "key_considerations": ["consideration1", "consideration2"],
+    "confounding_factors": ["factor1", ...],
+    "recommendation_for_smc": "..."
+  }
+
+user_template: |
+  Please assess whether this adverse event meets DLT criteria:
+
+  Subject: {{subject_id}}
+  Dose Level: {{dose_level}}
+  DLT Observation Window: Cycle 1 (Day 1 - Day {{dlt_window_days}})
+
+  Adverse Event Details:
+  - AE Term: {{ae_term}}
+  - CTCAE Grade: {{ctcae_grade}}
+  - Start Date: {{ae_start_date}}
+  - Resolution Date: {{ae_end_date}}
+  - Duration (days): {{ae_duration}}
+  - Relationship to drug: {{ae_relationship}}
+  - Outcome: {{ae_outcome}}
+  - Action taken: {{ae_action}}
+
+  DLT Criteria (Protocol-defined):
+  {{dlt_criteria_text}}
+
+  Concomitant Medications: {{concomitant_meds}}
+  Relevant Medical History: {{medical_history}}
+
+  Please provide your DLT assessment as a JSON response.
+
+task_type: "dlt_assess"
+expected_output: "json"

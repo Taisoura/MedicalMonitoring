@@ -1,0 +1,163 @@
+# Oncology-specific audit rules and configuration
+# Derived from ZN-F-6418-101 (KRAS G12D inhibitor, Phase I solid tumor)
+
+recist:
+  # RECIST 1.1 thresholds
+  pr_threshold: -30.0        # >=30% decrease from baseline for PR
+  pd_threshold: 20.0         # >=20% increase from nadir for PD
+  pd_absolute_mm: 5.0        # Plus >=5mm absolute increase
+  confirm_window_days: 28    # Minimum days between response and confirmation
+  max_target_lesions: 5      # Maximum target lesions per organ
+  max_total_target: 5        # Maximum total target lesions
+  lymph_node_short_axis_mm: 15  # Pathological lymph node threshold
+
+dose_escalation:
+  design: "BOIN"             # BOIN or 3+3
+  target_dlt_rate: 0.30      # Target DLT rate
+  max_dlt_rate: 0.40         # Maximum acceptable DLT rate
+  cohort_size: 3             # Standard cohort size
+  max_sample_per_dose: 12    # Maximum subjects per dose level
+  dlt_observation_window_days: 28  # DLT observation period (Cycle 1)
+
+  # DLT criteria (from ZN-F-6418 DLT CRITERIA)
+  dlt_criteria:
+    hematologic:
+      - criterion: "Grade 4 neutropenia lasting >7 days"
+        grade: 4
+        parameter: "ANC"
+        duration_days: 7
+      - criterion: "Grade 3+ febrile neutropenia"
+        grade: 3
+        parameter: "ANC"
+        with_fever: true
+      - criterion: "Grade 4 thrombocytopenia"
+        grade: 4
+        parameter: "PLT"
+      - criterion: "Grade 3 thrombocytopenia with bleeding"
+        grade: 3
+        parameter: "PLT"
+        with_bleeding: true
+      - criterion: "Grade 4 anemia"
+        grade: 4
+        parameter: "HGB"
+
+    non_hematologic:
+      - criterion: "Grade 3+ non-hematologic toxicity (excluding nausea/vomiting/diarrhea controlled within 72h)"
+        grade: 3
+        exclude_if_controlled:
+          - "nausea"
+          - "vomiting"
+          - "diarrhea"
+        control_window_hours: 72
+      - criterion: "Grade 3+ AST/ALT elevation"
+        grade: 3
+        parameters: ["AST", "ALT"]
+      - criterion: "Grade 3+ total bilirubin elevation"
+        grade: 3
+        parameters: ["TBIL"]
+      - criterion: "Grade 3+ QTc prolongation (>500ms or >60ms increase)"
+        grade: 3
+        parameter: "QTc"
+        absolute_threshold_ms: 500
+        change_threshold_ms: 60
+
+    fatal:
+      - criterion: "Grade 5 toxicity (death related to study drug)"
+        grade: 5
+
+  # Dose levels for ZN-F-6418
+  dose_levels:
+    - level: "50mg QD"
+      dose_mg: 50
+      frequency: "QD"
+    - level: "100mg QD"
+      dose_mg: 100
+      frequency: "QD"
+    - level: "200mg QD"
+      dose_mg: 200
+      frequency: "QD"
+    - level: "400mg QD"
+      dose_mg: 400
+      frequency: "QD"
+    - level: "600mg QD"
+      dose_mg: 600
+      frequency: "QD"
+
+hepatotoxicity:
+  # Standard ULN values (adjust per central lab reference ranges)
+  alt_uln: 40.0
+  ast_uln: 40.0
+  tbil_uln: 1.2         # mg/dL (or 20.5 umol/L)
+  alp_uln: 120.0
+  ggt_uln: 50.0
+
+  # Hy's Law thresholds
+  hys_law:
+    alt_threshold: 3.0   # ALT >= 3xULN
+    tbil_threshold: 2.0  # TBIL >= 2xULN
+    alp_exclusion: 2.0   # ALP < 2xULN (exclude cholestatic)
+
+  # Liver mets adjustment
+  liver_mets:
+    use_baseline_adjusted: true
+    alt_threshold_with_mets: 5.0  # ALT >= 5xULN for pts with liver mets
+    fold_change_from_baseline: 3.0  # OR: 3-fold increase from baseline
+
+  # DILI pattern (R-value thresholds)
+  dili_pattern:
+    hepatocellular_r: 5.0    # R >= 5
+    cholestatic_r: 2.0       # R <= 2
+    # mixed: 2 < R < 5
+
+  # Monitoring frequency triggers
+  monitoring_triggers:
+    alt_2x_uln: "Increase monitoring to weekly"
+    alt_3x_uln: "Consider dose interruption per protocol"
+    alt_5x_uln: "Dose interruption mandatory, rule out other causes"
+    hys_law_met: "URGENT: Notify sponsor, initiate Hy's Law work-up"
+
+efficacy:
+  confidence_level: 0.95
+  response_categories:
+    - CR   # Complete Response
+    - PR   # Partial Response
+    - SD   # Stable Disease
+    - PD   # Progressive Disease
+    - NE   # Not Evaluable
+
+ae_oncology:
+  # Oncology-specific AE of special interest (AESI)
+  aesi_terms:
+    - category: "Hepatotoxicity"
+      preferred_terms:
+        - "Alanine aminotransferase increased"
+        - "Aspartate aminotransferase increased"
+        - "Blood bilirubin increased"
+        - "Drug-induced liver injury"
+        - "Hepatic failure"
+    - category: "QT prolongation"
+      preferred_terms:
+        - "Electrocardiogram QT prolonged"
+        - "Torsade de pointes"
+    - category: "GI toxicity"
+      preferred_terms:
+        - "Diarrhoea"
+        - "Nausea"
+        - "Vomiting"
+    - category: "Skin toxicity"
+      preferred_terms:
+        - "Rash"
+        - "Palmar-plantar erythrodysaesthesia syndrome"
+        - "Dermatitis acneiform"
+    - category: "Myelosuppression"
+      preferred_terms:
+        - "Neutropenia"
+        - "Thrombocytopenia"
+        - "Anaemia"
+        - "Febrile neutropenia"
+
+  # CTCAE grade thresholds requiring action
+  grade_actions:
+    grade_3: "Consider dose modification per protocol"
+    grade_4: "Dose interruption; evaluate for DLT if in observation window"
+    grade_5: "URGENT: Report as SAE/death; notify sponsor immediately"

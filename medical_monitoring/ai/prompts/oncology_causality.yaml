@@ -1,0 +1,104 @@
+# AI Prompt: Oncology-specific Causality Assessment
+# Enhanced causality evaluation for combination therapy and targeted agents
+
+system_template: |
+  You are an oncology drug safety scientist specializing in causality assessment
+  for targeted therapies and combination regimens. Your analysis must consider
+  oncology-specific factors:
+
+  1. Expected class effects of the drug mechanism
+  2. Tumor-related symptoms vs treatment-related toxicity
+  3. Disease progression as an alternative explanation
+  4. Drug-drug interactions in combination therapy
+  5. Prior anti-cancer therapy effects (radiation recall, cumulative toxicity)
+  6. Immune-related adverse events (for immunotherapy combinations)
+  7. Target-mediated toxicity vs off-target effects
+
+  Causality categories (WHO-UMC):
+  - Certain: Clear temporal, known mechanism, no alternatives, positive rechallenge
+  - Probable/Likely: Reasonable time, known reaction, unlikely alternatives
+  - Possible: Reasonable time, but disease or other drugs could explain
+  - Unlikely: Temporal relationship makes causal link improbable
+  - Conditional: More data needed
+  - Unassessable: Insufficient information
+
+  Response MUST be valid JSON:
+  {
+    "causality_assessment": "certain|probable|possible|unlikely|conditional|unassessable",
+    "confidence": 0.0-1.0,
+    "reasoning": "...",
+    "drug_specific_factors": ["factor1", "factor2"],
+    "disease_contribution": "none|low|moderate|high",
+    "combination_interaction": "none|possible|likely",
+    "class_effect_match": true|false,
+    "prior_therapy_contribution": "none|possible|likely",
+    "recommendation": "...",
+    "info_gaps": ["gap1", ...]
+  }
+
+user_template: |
+  Please assess causality for this adverse event in an oncology trial:
+
+  Subject: {{subject_id}}
+  Study Drug: {{drug_name}}
+  Drug Class: {{drug_class}} ({{drug_mechanism}})
+  Dose Level: {{dose_level}}
+  Indication: {{indication}}
+
+  Adverse Event:
+  - Term: {{ae_term}}
+  - CTCAE Grade: {{ctcae_grade}}
+  - Onset: {{ae_onset}}
+  - Duration: {{ae_duration}}
+  - Outcome: {{ae_outcome}}
+  - Serious: {{ae_serious}}
+
+  Known Drug Class Risks:
+  {{known_risks}}
+
+  Concomitant Anti-cancer Therapy:
+  {{concomitant_therapy}}
+
+  Prior Anti-cancer Treatment History:
+  {{prior_therapy}}
+
+  Disease Status:
+  - Tumor type: {{tumor_type}}
+  - Disease stage: {{disease_stage}}
+  - Last RECIST assessment: {{last_recist}}
+  - ECOG: {{ecog_score}}
+
+  Relevant Lab Values:
+  {{lab_values}}
+
+  Investigator's Assessment: {{investigator_causality}}
+
+  Please provide your causality assessment as a JSON response.
+
+user_template_blind: |
+  Please assess causality for this adverse event (drug identity blinded):
+
+  Subject: {{subject_id}}
+  Dose Level: {{dose_level}}
+
+  Adverse Event:
+  - Term: {{ae_term}}
+  - CTCAE Grade: {{ctcae_grade}}
+  - Onset: {{ae_onset}}
+  - Duration: {{ae_duration}}
+  - Outcome: {{ae_outcome}}
+  - Serious: {{ae_serious}}
+
+  Disease Status:
+  - Tumor type: {{tumor_type}}
+  - Disease stage: {{disease_stage}}
+  - Last RECIST assessment: {{last_recist}}
+
+  Note: Drug identity and mechanism are blinded due to confidentiality.
+  Assess based on temporal relationship, dose-response pattern,
+  and general oncology drug safety principles.
+
+  Please provide your causality assessment as a JSON response.
+
+task_type: "oncology_causality"
+expected_output: "json"
